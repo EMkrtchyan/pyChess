@@ -1,6 +1,22 @@
 
 import pygame
 
+# Screen dimensions
+WIDTH, HEIGHT = 800, 800
+
+bWIDTH, bHEIGHT = 142,142
+
+bInsWIDTH, bInsHEIGHT = 128,128
+
+scaleW = WIDTH//bWIDTH
+scaleH = HEIGHT//bHEIGHT
+startX, startY = scaleW*((bWIDTH-bInsWIDTH)//2),scaleH*((bHEIGHT-bInsHEIGHT)//2)
+
+endX, endY = WIDTH - startX, HEIGHT - startY
+
+squareSize = (endX-startX)//8
+
+
 pieces = {"none":6,"pawn":0,"knight":1,"bishop":2,"rook":3,"queen":4,"king":5}
 none = pygame.Surface((0,0))
 bPawn = pygame.image.load("pixelChess/16x32/B_Pawn.png")
@@ -20,6 +36,9 @@ wQueen = pygame.image.load("pixelChess/16x32/W_Queen.png")
 wKing = pygame.image.load("pixelChess/16x32/W_King.png")
 
 wParr = [wPawn,wKnight,wBishop,wRook,wQueen,wKing,none]
+
+
+
 
 
 def outline(img,loc,screen,size = 4):
@@ -54,9 +73,22 @@ class piece:
             outline(self.sprite,(self.posX,self.posY),screen)
         screen.blit(self.sprite,(self.posX,self.posY))
 
+    def posToCoord(self):
+        return (min(int(self.posX+startX-squareSize*0.5)//squareSize,7),min((int(self.posY-startY+squareSize*1.5)//squareSize),7))
+    def reCalculatePos(self):
+        self.posX = startX+self.x*squareSize+(squareSize-self.p_sizeX)//2
+        self.posY = startY+(self.y-1)*squareSize+(self.p_sizeY-squareSize)//4
+
+
 class board:
 
     def __init__(self,scale=1,startX=14,startY=14,squareSize=91):
+        self.mouseToX = 8
+        self.mouseToY = 8
+        self.curX = 8
+        self.curY = 8
+        
+        self.lock = False
         self.canCastle = True
         self.whiteTurn = True
         self.Board = [
@@ -76,6 +108,43 @@ class board:
                 elem_mask = pygame.mask.from_surface(elem.sprite)
                 if elem_mask.overlap(mouse1,(point[0]-elem.posX,point[1]-elem.posY)):
                     elem.oline = True
+                    self.mouseToX = elem.x
+                    self.mouseToY = elem.y
                 else:
                     elem.oline = False
                 elem.draw(screen)
+        #self.mouseToX = 8
+        #self.mouseToY = 8
+        #print(self.mouseToX,self.mouseToY)
+    def pinch(self,point,drop = False):
+        if self.mouseToX ==8 or self.Board[self.mouseToY][self.mouseToX].type == 6:
+            #print("this")
+            return
+        if not self.lock:
+            self.lock = True
+            self.curX = self.mouseToX
+            self.curY = self.mouseToY
+            self.Board[self.curY][self.curX].posX=point[0]-self.Board[self.curY][self.curX].p_sizeX//2
+            self.Board[self.curY][self.curX].posY=point[1]-self.Board[self.curY][self.curX].p_sizeY
+        else:
+            if not drop:
+                self.Board[self.curY][self.curX].posX=point[0]-self.Board[self.curY][self.curX].p_sizeX//2
+                self.Board[self.curY][self.curX].posY=point[1]-self.Board[self.curY][self.curX].p_sizeY
+            else:
+                self.lock = False
+                drop = False
+                self.mouseToX = 8
+                self.move(self.curX,self.curY)
+    def move(self,x,y):
+        dx,dy = self.Board[y][x].posToCoord()
+        print(dx,dy)
+        
+        self.Board[dy][dx] = self.Board[y][x] 
+        self.Board[dy][dx].x,self.Board[dy][dx].y = dx,dy
+        self.Board[y][x] = piece(x,y,"none")
+        #self.Board[dx][dy].reCalculatePos()
+        self.fullRec()
+    def fullRec(self):
+        for row in self.Board:
+            for elem in row:
+                elem.reCalculatePos()
