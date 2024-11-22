@@ -29,7 +29,7 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Chess")
 
 # Load board image
-board = pygame.image.load("pixelChess/boards/board_plain_01.png")
+board = pygame.image.load("pixelChess/boards/board_plain_05.png")
 board = pygame.transform.scale(board, (WIDTH, HEIGHT))
 
 
@@ -66,15 +66,13 @@ while running:
     
 
     # Get the current mouse position
-    mouse_x, mouse_y = pygame.mouse.get_pos()
+    point = pygame.mouse.get_pos()
+    point = (point[0] - cursor_width // 2, point[1] - cursor_height // 2)
 
-    board1.draw(screen)
-    #rook.draw(screen)
-    #screen.blit(bBishop,(startX,startY-p_sizeY//2))
-    #screen.blit(bBishop,(endX-p_sizeX,endY-p_sizeY))
+    board1.draw(screen,point,custom_cursor1)
 
     # Draw the custom cursor
-    screen.blit(custom_cursor1, (mouse_x - cursor_width // 2, mouse_y - cursor_height // 2))
+    screen.blit(custom_cursor1, (point[0], point[1]))
 
     # Update the display
     pygame.display.flip()

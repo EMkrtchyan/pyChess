@@ -22,6 +22,15 @@ wKing = pygame.image.load("pixelChess/16x32/W_King.png")
 wParr = [wPawn,wKnight,wBishop,wRook,wQueen,wKing,none]
 
 
+def outline(img,loc,screen,size = 4):
+    mask = pygame.mask.from_surface(img)
+    mask_surf = mask.to_surface()
+    mask_surf.set_colorkey((0,0,0))
+    screen.blit(mask_surf,(loc[0]-size,loc[1]))
+    screen.blit(mask_surf,(loc[0]+size,loc[1]))
+    screen.blit(mask_surf,(loc[0],loc[1]-size))
+    screen.blit(mask_surf,(loc[0],loc[1]+size))
+
 class piece:
     
 
@@ -30,7 +39,7 @@ class piece:
         self.x = x
         self.y = y
         self.scale = scale
-        
+        self.oline = False
         self.white = white
         self.type = pieces[type] 
         self.sprite = wParr[pieces[type]] if white else bParr[pieces[type]]
@@ -41,6 +50,8 @@ class piece:
         self.posY = startY+(y-1)*squareSize+(self.p_sizeY-squareSize)//4
 
     def draw(self,screen):
+        if self.oline:
+            outline(self.sprite,(self.posX,self.posY),screen)
         screen.blit(self.sprite,(self.posX,self.posY))
 
 class board:
@@ -58,7 +69,13 @@ class board:
             [piece(0,6,"pawn",True,scale,startX,startY,squareSize),piece(1,6,"pawn",True,scale,startX,startY,squareSize),piece(2,6,"pawn",True,scale,startX,startY,squareSize),piece(3,6,"pawn",True,scale,startX,startY,squareSize),piece(4,6,"pawn",True,scale,startX,startY,squareSize),piece(5,6,"pawn",True,scale,startX,startY,squareSize),piece(6,6,"pawn",True,scale,startX,startY,squareSize),piece(7,6,"pawn",True,scale,startX,startY,squareSize)],
             [piece(0,7,"rook",True,scale,startX,startY,squareSize),piece(1,7,"knight",True,scale,startX,startY,squareSize),piece(2,7,"bishop",True,scale,startX,startY,squareSize),piece(3,7,"queen",True,scale,startX,startY,squareSize),piece(4,7,"king",True,scale,startX,startY,squareSize),piece(5,7,"bishop",True,scale,startX,startY,squareSize),piece(6,7,"knight",True,scale,startX,startY,squareSize),piece(7,7,"rook",True,scale,startX,startY,squareSize)],
         ]
-    def draw(self,screen):
+    def draw(self,screen,point,mouse):
         for row in self.Board:
             for elem in row:
+                mouse1 = pygame.mask.from_surface(mouse)
+                elem_mask = pygame.mask.from_surface(elem.sprite)
+                if elem_mask.overlap(mouse1,(point[0]-elem.posX,point[1]-elem.posY)):
+                    elem.oline = True
+                else:
+                    elem.oline = False
                 elem.draw(screen)
