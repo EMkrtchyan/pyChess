@@ -1,6 +1,5 @@
 
 import pygame
-
 # Screen dimensions
 WIDTH, HEIGHT = 800, 800
 
@@ -57,27 +56,45 @@ class piece:
         #types 6-none 0-pawn 1-knight 2-bishop 3-rook 4-queen 5-king
         self.x = x
         self.y = y
-        self.scale = scale
+        self.scale = scale*0.8
         self.oline = False
         self.white = white
         self.type = pieces[type] 
         self.sprite = wParr[pieces[type]] if white else bParr[pieces[type]]
-        self.sprite = pygame.transform.scale_by(self.sprite,scale)
+        self.sprite = pygame.transform.scale_by(self.sprite,self.scale)
+        self.maskSprite = pygame.mask.from_surface(self.sprite)
         self.p_sizeX,self.p_sizeY = self.sprite.get_size()
 
-        self.posX = startX+x*squareSize+(squareSize-self.p_sizeX)//2
-        self.posY = startY+(y-1)*squareSize+(self.p_sizeY-squareSize)//4
+        # self.posX = startX+x*squareSize+(squareSize-self.p_sizeX)//2
+        # self.posY = startY+(y-1)*squareSize+(self.p_sizeY-squareSize)//4
+        self.posX = startX+x*squareSize+squareSize//2
+        self.posY = startY+y*squareSize+squareSize//2
+
+        self.offsetX = self.p_sizeX//2
+        self.offsetY = (self.p_sizeY//4)*3
 
     def draw(self,screen):
         if self.oline:
-            outline(self.sprite,(self.posX,self.posY),screen)
-        screen.blit(self.sprite,(self.posX,self.posY))
+            outline(self.sprite,(self.posX-self.offsetX,self.posY-self.offsetY),screen)
+        screen.blit(self.sprite,(self.posX-self.offsetX,self.posY-self.offsetY))
+
+
+    def overlap(self,point,mouse):
+        mouse1 = pygame.mask.from_surface(mouse)
+        if self.maskSprite.overlap(mouse1,(point[0]-self.posX+self.offsetX,point[1]-self.posY+self.offsetY)):
+            self.oline = True
+            return True
+        else:
+            self.oline = False
+            return False
 
     def posToCoord(self):
-        return (min(int(self.posX+startX-squareSize*0.5)//squareSize,7),min((int(self.posY-startY+squareSize*1.5)//squareSize),7))
+        return (max(min(int(self.posX+startX-squareSize)//squareSize,7),0),max(min((int(self.posY+startY-squareSize)//squareSize),7),0))
     def reCalculatePos(self):
-        self.posX = startX+self.x*squareSize+(squareSize-self.p_sizeX)//2
-        self.posY = startY+(self.y-1)*squareSize+(self.p_sizeY-squareSize)//4
+        # self.posX = startX+self.x*squareSize+(squareSize-self.p_sizeX)//2
+        # self.posY = startY+(self.y-1)*squareSize+(self.p_sizeY-squareSize)//4
+        self.posX = startX+self.x*squareSize+squareSize//2
+        self.posY = startY+self.y*squareSize+squareSize//2
 
 
 class board:
@@ -101,21 +118,25 @@ class board:
             [piece(0,6,"pawn",True,scale,startX,startY,squareSize),piece(1,6,"pawn",True,scale,startX,startY,squareSize),piece(2,6,"pawn",True,scale,startX,startY,squareSize),piece(3,6,"pawn",True,scale,startX,startY,squareSize),piece(4,6,"pawn",True,scale,startX,startY,squareSize),piece(5,6,"pawn",True,scale,startX,startY,squareSize),piece(6,6,"pawn",True,scale,startX,startY,squareSize),piece(7,6,"pawn",True,scale,startX,startY,squareSize)],
             [piece(0,7,"rook",True,scale,startX,startY,squareSize),piece(1,7,"knight",True,scale,startX,startY,squareSize),piece(2,7,"bishop",True,scale,startX,startY,squareSize),piece(3,7,"queen",True,scale,startX,startY,squareSize),piece(4,7,"king",True,scale,startX,startY,squareSize),piece(5,7,"bishop",True,scale,startX,startY,squareSize),piece(6,7,"knight",True,scale,startX,startY,squareSize),piece(7,7,"rook",True,scale,startX,startY,squareSize)],
         ]
+        self.wallBoard = [
+            [True,True,True,True,True,True,True,True],
+            [True,True,True,True,True,True,True,True],
+            [False,False,False,False,False,False,False,False],
+            [False,False,False,False,False,False,False,False],
+            [False,False,False,False,False,False,False,False],
+            [False,False,False,False,False,False,False,False],
+            [True,True,True,True,True,True,True,True],
+            [True,True,True,True,True,True,True,True]
+        ]
     def draw(self,screen,point,mouse):
         for row in self.Board:
             for elem in row:
-                mouse1 = pygame.mask.from_surface(mouse)
-                elem_mask = pygame.mask.from_surface(elem.sprite)
-                if elem_mask.overlap(mouse1,(point[0]-elem.posX,point[1]-elem.posY)):
-                    elem.oline = True
+
+                if elem.overlap(point,mouse):
                     self.mouseToX = elem.x
                     self.mouseToY = elem.y
-                else:
-                    elem.oline = False
                 elem.draw(screen)
-        #self.mouseToX = 8
-        #self.mouseToY = 8
-        #print(self.mouseToX,self.mouseToY)
+
     def pinch(self,point,drop = False):
         if self.mouseToX ==8 or self.Board[self.mouseToY][self.mouseToX].type == 6:
             #print("this")
@@ -124,27 +145,83 @@ class board:
             self.lock = True
             self.curX = self.mouseToX
             self.curY = self.mouseToY
-            self.Board[self.curY][self.curX].posX=point[0]-self.Board[self.curY][self.curX].p_sizeX//2
-            self.Board[self.curY][self.curX].posY=point[1]-self.Board[self.curY][self.curX].p_sizeY
+            self.Board[self.curY][self.curX].posX=point[0]
+            self.Board[self.curY][self.curX].posY=point[1]
         else:
             if not drop:
-                self.Board[self.curY][self.curX].posX=point[0]-self.Board[self.curY][self.curX].p_sizeX//2
-                self.Board[self.curY][self.curX].posY=point[1]-self.Board[self.curY][self.curX].p_sizeY
+                # self.Board[self.curY][self.curX].posX=point[0]-self.Board[self.curY][self.curX].p_sizeX//2
+                # self.Board[self.curY][self.curX].posY=point[1]-self.Board[self.curY][self.curX].p_sizeY//2
+                self.Board[self.curY][self.curX].posX=point[0]
+                self.Board[self.curY][self.curX].posY=point[1]
             else:
                 self.lock = False
                 drop = False
                 self.mouseToX = 8
-                self.move(self.curX,self.curY)
-    def move(self,x,y):
+                self.checkMove(self.curX,self.curY)
+    def checkMove(self,x,y):
         dx,dy = self.Board[y][x].posToCoord()
-        print(dx,dy)
-        
-        self.Board[dy][dx] = self.Board[y][x] 
-        self.Board[dy][dx].x,self.Board[dy][dx].y = dx,dy
-        self.Board[y][x] = piece(x,y,"none")
-        #self.Board[dx][dy].reCalculatePos()
-        self.fullRec()
+
+        if not (dx,dy) == (x,y):
+            type = self.Board[y][x].type
+            dtype = self.Board[dy][dx].type
+            white = self.Board[y][x].white
+            dwhite = self.Board[dy][dx].white
+            match type:
+                case 0:
+                    if((dtype==6 and dx-x==0) and ((white and y-dy == 2 and y ==6) or (white and y-dy ==1) or (not white and dy-y==2 and y==1) or (not white and dy-y==1))):
+                        self.move(x,y,dx,dy)
+                    
+                    elif((not dtype==6 and abs(dx-x)==1 and not white == dwhite)and((white and y-dy==1)or(not white and dy-y==1))):
+                        self.move(x,y,dx,dy)
+                case 1:
+                    if(((abs(dx-x)==1 and abs(dy-y)==2) or (abs(dx-x)==2 and abs(dy-y)==1)) and (not white ==dwhite or dtype ==6) ):
+                        self.move(x,y,dx,dy)
+                case 2:
+                    if(abs(dx-x)==abs(dy-y) and (not white == dwhite or dtype == 6)):
+                        if raycast(x,y,dx,dy,self.wallBoard):
+                            self.move(x,y,dx,dy)
+                case 3:
+                    if((dy-y == 0 or dx-x==0) and (not white == dwhite or dtype == 6)):
+                        if raycast(x,y,dx,dy,self.wallBoard):
+                            self.move(x,y,dx,dy)
+                case 4:
+                    if(abs(dx-x)==abs(dy-y) and (not white == dwhite or dtype == 6) or (dy-y == 0 or dx-x==0) and (not white == dwhite or dtype == 6)):
+                        if raycast(x,y,dx,dy,self.wallBoard):
+                            self.move(x,y,dx,dy)
+                case 5:
+                    if(max(abs(dy-y),abs(dx-x))<=1 and (not white == dwhite or dtype == 6)):
+                        self.move(x,y,dx,dy)
+
+                case _:
+                    self.fullRec()
+            #self.Board[dx][dy].reCalculatePos()
+            self.fullRec()
+        else:
+            self.fullRec()
+            #self.Board[dx][dy].reCalculatePos()
+    def move(self,x,y,dx,dy):
+            self.Board[dy][dx] = self.Board[y][x] 
+            self.Board[dy][dx].x,self.Board[dy][dx].y = dx,dy
+            self.Board[y][x] = piece(x,y,"none")
+            self.wallBoard[y][x] = False
+            self.wallBoard[dy][dx] = True
     def fullRec(self):
         for row in self.Board:
             for elem in row:
                 elem.reCalculatePos()
+
+def raycast(x,y,dx,dy,board):
+    
+    if(dx-x==0):
+        stepX = 0
+    else:
+        stepX = (dx-x)//abs(dx-x)
+    if(dy-y==0):
+        stepY = 0
+    else:
+        stepY = (dy-y)//abs(dy-y)
+    canGo = True 
+    for i in range(max(abs(dx-x),abs(dy-y))-1):
+        if not board[y+(i+1)*stepY][x+(i+1)*stepX] ==False:
+            canGo = False
+    return canGo

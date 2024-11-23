@@ -6,22 +6,18 @@ import chess
 pygame.init()
 
 # Screen dimensions
-WIDTH, HEIGHT = 800, 800
+WIDTH, HEIGHT = chess.WIDTH,chess.HEIGHT
 
-bWIDTH, bHEIGHT = 142,142
+bWIDTH, bHEIGHT = chess.bWIDTH,chess.bHEIGHT
 
-bInsWIDTH, bInsHEIGHT = 128,128
+bInsWIDTH, bInsHEIGHT = chess.bInsWIDTH,chess.bInsHEIGHT
 
-scaleW = WIDTH//bWIDTH
-scaleH = HEIGHT//bHEIGHT
+scaleW, scaleH  = chess.scaleW, chess.scaleH
 
+startX, startY = chess.startX, chess.startY
+endX, endY = chess.endX, chess.endY
 
-
-startX, startY = scaleW*((bWIDTH-bInsWIDTH)//2),scaleH*((bHEIGHT-bInsHEIGHT)//2)
-
-endX, endY = WIDTH - startX, HEIGHT - startY
-
-squareSize = (endX-startX)//8
+squareSize = chess.squareSize
 # Set up the display
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Chess")
