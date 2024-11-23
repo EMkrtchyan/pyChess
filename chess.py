@@ -87,6 +87,7 @@ class piece:
         else:
             self.oline = False
             return False
+        
 
     def posToCoord(self):
         return (max(min(int(self.posX+startX-squareSize)//squareSize,7),0),max(min((int(self.posY+startY-squareSize)//squareSize),7),0))
@@ -102,11 +103,13 @@ class board:
     def __init__(self,scale=1,startX=14,startY=14,squareSize=91):
         self.mouseToX = 8
         self.mouseToY = 8
+        self.scale = scale 
         self.curX = 8
         self.curY = 8
-        
+        self.curState=0
         self.lock = False
-        self.canCastle = True
+        self.canCastleW = True
+        self.canCastleB = True
         self.whiteTurn = True
         self.Board = [
             [piece(0,0,"rook",False,scale,startX,startY,squareSize),piece(1,0,"knight",False,scale,startX,startY,squareSize),piece(2,0,"bishop",False,scale,startX,startY,squareSize),piece(3,0,"queen",False,scale,startX,startY,squareSize),piece(4,0,"king",False,scale,startX,startY,squareSize),piece(5,0,"bishop",False,scale,startX,startY,squareSize),piece(6,0,"knight",False,scale,startX,startY,squareSize),piece(7,0,"rook",False,scale,startX,startY,squareSize)],
@@ -129,12 +132,16 @@ class board:
             [True,True,True,True,True,True,True,True]
         ]
     def draw(self,screen,point,mouse):
+        if not self.curState == 2:
+            self.curState = 0
         for row in self.Board:
             for elem in row:
 
                 if elem.overlap(point,mouse):
                     self.mouseToX = elem.x
                     self.mouseToY = elem.y
+                    if not self.curState == 2:
+                        self.curState = 1
                 elem.draw(screen)
 
     def pinch(self,point,drop = False):
@@ -142,6 +149,7 @@ class board:
             #print("this")
             return
         if not self.lock:
+            self.curState = 2
             self.lock = True
             self.curX = self.mouseToX
             self.curY = self.mouseToY
@@ -149,30 +157,38 @@ class board:
             self.Board[self.curY][self.curX].posY=point[1]
         else:
             if not drop:
+                self.curState = 2
                 # self.Board[self.curY][self.curX].posX=point[0]-self.Board[self.curY][self.curX].p_sizeX//2
                 # self.Board[self.curY][self.curX].posY=point[1]-self.Board[self.curY][self.curX].p_sizeY//2
                 self.Board[self.curY][self.curX].posX=point[0]
                 self.Board[self.curY][self.curX].posY=point[1]
             else:
+                self.curState = 1
                 self.lock = False
                 drop = False
                 self.mouseToX = 8
                 self.checkMove(self.curX,self.curY)
+            #print(self.curState)
     def checkMove(self,x,y):
         dx,dy = self.Board[y][x].posToCoord()
-
-        if not (dx,dy) == (x,y):
+        white = self.Board[y][x].white
+        whiteTurn = self.whiteTurn
+        if not (dx,dy) == (x,y) and white == whiteTurn:
             type = self.Board[y][x].type
             dtype = self.Board[dy][dx].type
-            white = self.Board[y][x].white
+            
             dwhite = self.Board[dy][dx].white
             match type:
                 case 0:
                     if((dtype==6 and dx-x==0) and ((white and y-dy == 2 and y ==6) or (white and y-dy ==1) or (not white and dy-y==2 and y==1) or (not white and dy-y==1))):
                         self.move(x,y,dx,dy)
+                        if(dy==7 or dy == 0):
+                            self.Board[dy][dx] = piece(dx,dy,"queen",not self.whiteTurn,self.scale,startX,startY,squareSize)
                     
                     elif((not dtype==6 and abs(dx-x)==1 and not white == dwhite)and((white and y-dy==1)or(not white and dy-y==1))):
                         self.move(x,y,dx,dy)
+                        if(dy==7 or dy == 0):
+                            self.Board[dy][dx] = piece(dx,dy,"queen",not self.whiteTurn,self.scale,startX,startY,squareSize)
                 case 1:
                     if(((abs(dx-x)==1 and abs(dy-y)==2) or (abs(dx-x)==2 and abs(dy-y)==1)) and (not white ==dwhite or dtype ==6) ):
                         self.move(x,y,dx,dy)
@@ -190,7 +206,24 @@ class board:
                             self.move(x,y,dx,dy)
                 case 5:
                     if(max(abs(dy-y),abs(dx-x))<=1 and (not white == dwhite or dtype == 6)):
+                        if self.whiteTurn:
+                            self.canCastleW = False
+                        else:
+                            self.canCastleB = False
                         self.move(x,y,dx,dy)
+                    elif(((self.canCastleW and self.whiteTurn) or (self.canCastleB and not self.whiteTurn)) and abs(dx-x)==2 and (dy-y)==0):
+                        dir = int((dx-x)/abs(dx-x))
+                        coordX = ((dir+1)//2)*7
+                        
+                        if not self.whiteTurn:
+                            coordY = 0
+                        else:
+                            coordY = 7 
+                        print(coordX,coordY)
+                        if raycast(x,y,coordX,coordY,self.wallBoard):
+                            self.move(x,y,dx,dy)
+                            self.whiteTurn = not self.whiteTurn
+                            self.move(coordX,coordY,dx-dir,dy)
 
                 case _:
                     self.fullRec()
@@ -200,6 +233,7 @@ class board:
             self.fullRec()
             #self.Board[dx][dy].reCalculatePos()
     def move(self,x,y,dx,dy):
+            self.whiteTurn = not self.whiteTurn
             self.Board[dy][dx] = self.Board[y][x] 
             self.Board[dy][dx].x,self.Board[dy][dx].y = dx,dy
             self.Board[y][x] = piece(x,y,"none")
