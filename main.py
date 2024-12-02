@@ -50,9 +50,18 @@ cursors=[custom_cursor1,custom_cursor2,custom_cursor3]
 
 cursor_width, cursor_height = custom_cursor1.get_size()
 
-board1 = chess.board(scaleH,startX,startY,squareSize)
+board1 = chess.board(screen,scaleH,startX,startY,squareSize)
 # Hide the default cursor
 pygame.mouse.set_visible(False)
+
+
+def pointToXY(point):
+    X = point[0]-startX
+    Y = point[1]-startY
+    X//=squareSize
+    Y//=squareSize
+    return(max(0,min(X,7)),max(0,min(Y,7)))  
+
 
 # Set up the clock for controlling the frame rate
 clock = pygame.time.Clock()
@@ -60,7 +69,8 @@ clock = pygame.time.Clock()
 # Game loop
 running = True
 while running:
-
+# Draw the background
+    #screen.blit(board, (0, 0))
     # Handle events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -84,9 +94,8 @@ while running:
                 point1 = pygame.mouse.get_pos()
                 board1.pinch(point1,True)
 
-    # Draw the background
-    screen.blit(board, (0, 0))
     
+  
 
     # Get the current mouse position
     point = pygame.mouse.get_pos()
@@ -95,7 +104,7 @@ while running:
     point = (point[0] - cursor_width // 2, point[1] - cursor_height // 2)
 
     board1.draw(screen,point,cursors[board1.curState])
-    
+    board1.darkSquare(pointToXY(point))
 
 
     

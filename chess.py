@@ -37,8 +37,8 @@ wKing = pygame.image.load("pixelChess/16x32/W_King.png")
 wParr = [wPawn,wKnight,wBishop,wRook,wQueen,wKing,none]
 
 
-
-
+boardIm = pygame.image.load("pixelChess/boards/board_plain_05.png")
+boardIm = pygame.transform.scale(boardIm, (WIDTH, HEIGHT))
 
 def outline(img,loc,screen,size = 4):
     mask = pygame.mask.from_surface(img)
@@ -100,10 +100,11 @@ class piece:
 
 class board:
 
-    def __init__(self,scale=1,startX=14,startY=14,squareSize=91):
+    def __init__(self,screen,scale=1,startX=14,startY=14,squareSize=91):
         self.mouseToX = 8
         self.mouseToY = 8
         self.scale = scale 
+        self.screen = screen
         self.curX = 8
         self.curY = 8
         self.curState=0
@@ -132,6 +133,7 @@ class board:
             [True,True,True,True,True,True,True,True]
         ]
     def draw(self,screen,point,mouse):
+        self.screen.blit(boardIm, (0, 0))
         if not self.curState == 2:
             self.curState = 0
         for row in self.Board:
@@ -243,6 +245,12 @@ class board:
         for row in self.Board:
             for elem in row:
                 elem.reCalculatePos()
+
+    def darkSquare(self,xy):
+        s = pygame.Surface((squareSize,squareSize))  
+        s.set_alpha(64)             
+        s.fill((0,0,0))          
+        self.screen.blit(s, (startX+(squareSize-1)*xy[0]+5,startY+(squareSize-1)*xy[1]+5))   
 
 def raycast(x,y,dx,dy,board):
     
